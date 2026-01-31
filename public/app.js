@@ -1,6 +1,5 @@
-const API_BASE = '/api/index'; // Arahkan ke Vercel function
+const API_BASE = '/api/index';
 
-// Elements
 const dom = {
     homeView: document.getElementById('home-view'),
     playerView: document.getElementById('player-view'),
@@ -9,22 +8,69 @@ const dom = {
     video: document.getElementById('main-video'),
     epGrid: document.getElementById('ep-grid'),
     epDrawer: document.getElementById('ep-drawer'),
-    currentTitle: document.getElementById('current-title')
+    currentTitle: document.getElementById('current-title'),
+    searchInput: document.getElementById('search-input'),
+    searchBtn: document.getElementById('search-btn'),
+    pageTitle: document.getElementById('page-title')
 };
 
-let currentEpisodes = [];
-
-// Init
 window.addEventListener('DOMContentLoaded', loadHome);
 
+// --- SEARCH LOGIC ---
+dom.searchBtn.onclick = () => {
+    if (dom.searchInput.style.display === 'none') {
+        dom.searchInput.style.display = 'block';
+        dom.searchInput.focus();
+    } else {
+        const query = dom.searchInput.value.trim();
+        if (query) doSearch(query);
+    }
+};
+
+dom.searchInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') doSearch(dom.searchInput.value.trim());
+});
+
+async function doSearch(query) {
+    if(!query) return;
+    dom.loading.style.display = 'block';
+    dom.dramaList.innerHTML = '';
+    dom.pageTitle.style.display = 'block';
+    dom.pageTitle.innerText = `Search: "${query}"`;
+    
+    try {
+        const res = await fetch(`${API_BASE}?type=search&query=${encodeURIComponent(query)}`);
+        const data = await res.json();
+        dom.loading.style.display = 'none';
+        
+        if(data.length === 0) {
+            dom.dramaList.innerHTML = '<p style="text-align:center; width:100%; color:#666;">No results found.</p>';
+        } else {
+            renderList(data);
+        }
+    } catch (e) {
+        alert('Search failed');
+        loadHome();
+    }
+}
+// --------------------
+
 async function loadHome() {
+    dom.searchInput.style.display = 'none';
+    dom.searchInput.value = '';
+    dom.pageTitle.style.display = 'block';
+    dom.pageTitle.innerText = 'Recommended For You';
+    dom.loading.style.display = 'block';
+    dom.dramaList.innerHTML = '';
+
     try {
         const res = await fetch(`${API_BASE}?type=home`);
         const data = await res.json();
         dom.loading.style.display = 'none';
         renderList(data);
     } catch (e) {
-        alert('Gagal memuat data');
+        console.error(e);
+        dom.dramaList.innerHTML = '<p style="text-align:center;">Failed to load.</p>';
     }
 }
 
@@ -45,25 +91,23 @@ function renderList(data) {
 }
 
 async function openPlayer(url) {
-    // Show Player UI
     dom.playerView.classList.add('active');
     dom.video.src = '';
     dom.epGrid.innerHTML = '<div class="loader"></div>';
     dom.currentTitle.innerText = 'Fetching episodes...';
+    dom.epDrawer.classList.remove('show'); // Reset drawer state
 
     try {
-        // Fetch Details
         const res = await fetch(`${API_BASE}?type=detail&url=${encodeURIComponent(url)}`);
         const data = await res.json();
         
         dom.currentTitle.innerText = data.title;
-        currentEpisodes = data.episodes;
-        
         renderEpisodes(data.episodes);
         
-        // Auto play episode 1
         if (data.episodes.length > 0) {
-            playEpisode(data.episodes[0].url, 1);
+            playEpisode(data.episodes[0].url, data.episodes[0].episode_id);
+        } else {
+            dom.epGrid.innerHTML = '<p>No episodes found.</p>';
         }
 
     } catch (e) {
@@ -78,22 +122,23 @@ function renderEpisodes(episodes) {
         const btn = document.createElement('button');
         btn.className = 'ep-btn';
         btn.innerText = ep.episode_id;
-        btn.onclick = () => playEpisode(ep.url, ep.episode_id);
+        btn.onclick = () => {
+            playEpisode(ep.url, ep.episode_id);
+            // Optional: Close drawer after clicking
+            // toggleDrawer(); 
+        };
         dom.epGrid.appendChild(btn);
     });
 }
 
 function playEpisode(videoUrl, epNum) {
-    // Highlight active button
     document.querySelectorAll('.ep-btn').forEach(b => {
-        b.classList.toggle('active', b.innerText == epNum);
+        b.classList.toggle('active', parseInt(b.innerText) === parseInt(epNum));
     });
 
-    // PENTING: Gunakan Proxy API untuk bypass 403 Forbidden
     const proxyUrl = `${API_BASE}?type=stream&url=${encodeURIComponent(videoUrl)}`;
-    
     dom.video.src = proxyUrl;
-    dom.video.play().catch(e => console.log("Autoplay blocked, user interaction needed"));
+    dom.video.play().catch(e => console.log("Autoplay blocked"));
 }
 
 function closePlayer() {
