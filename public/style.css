@@ -1,152 +1,127 @@
-const API_BASE = '/api/index';
-
-const dom = {
-    homeView: document.getElementById('home-view'),
-    playerView: document.getElementById('player-view'),
-    dramaList: document.getElementById('drama-list'),
-    loading: document.getElementById('loading'),
-    video: document.getElementById('main-video'),
-    epGrid: document.getElementById('ep-grid'),
-    epDrawer: document.getElementById('ep-drawer'),
-    currentTitle: document.getElementById('current-title'),
-    searchInput: document.getElementById('search-input'),
-    searchBtn: document.getElementById('search-btn'),
-    pageTitle: document.getElementById('page-title')
-};
-
-window.addEventListener('DOMContentLoaded', loadHome);
-
-// --- SEARCH LOGIC ---
-dom.searchBtn.onclick = () => {
-    if (dom.searchInput.style.display === 'none') {
-        dom.searchInput.style.display = 'block';
-        dom.searchInput.focus();
-    } else {
-        const query = dom.searchInput.value.trim();
-        if (query) doSearch(query);
-    }
-};
-
-dom.searchInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') doSearch(dom.searchInput.value.trim());
-});
-
-async function doSearch(query) {
-    if(!query) return;
-    dom.loading.style.display = 'block';
-    dom.dramaList.innerHTML = '';
-    dom.pageTitle.style.display = 'block';
-    dom.pageTitle.innerText = `Search: "${query}"`;
-    
-    try {
-        const res = await fetch(`${API_BASE}?type=search&query=${encodeURIComponent(query)}`);
-        const data = await res.json();
-        dom.loading.style.display = 'none';
-        
-        if(data.length === 0) {
-            dom.dramaList.innerHTML = '<p style="text-align:center; width:100%; color:#666;">No results found.</p>';
-        } else {
-            renderList(data);
-        }
-    } catch (e) {
-        alert('Search failed');
-        loadHome();
-    }
-}
-// --------------------
-
-async function loadHome() {
-    dom.searchInput.style.display = 'none';
-    dom.searchInput.value = '';
-    dom.pageTitle.style.display = 'block';
-    dom.pageTitle.innerText = 'Recommended For You';
-    dom.loading.style.display = 'block';
-    dom.dramaList.innerHTML = '';
-
-    try {
-        const res = await fetch(`${API_BASE}?type=home`);
-        const data = await res.json();
-        dom.loading.style.display = 'none';
-        renderList(data);
-    } catch (e) {
-        console.error(e);
-        dom.dramaList.innerHTML = '<p style="text-align:center;">Failed to load.</p>';
-    }
+:root {
+    --bg-color: #0f0f0f;
+    --card-bg: #1e1e1e;
+    --primary: #ff3b30;
+    --text-main: #ffffff;
 }
 
-function renderList(data) {
-    dom.dramaList.innerHTML = '';
-    data.forEach(item => {
-        const card = document.createElement('div');
-        card.className = 'drama-card';
-        card.innerHTML = `
-            <img src="${item.image}" loading="lazy" alt="${item.title}">
-            <div class="drama-info">
-                <div class="drama-title">${item.title}</div>
-            </div>
-        `;
-        card.onclick = () => openPlayer(item.url);
-        dom.dramaList.appendChild(card);
-    });
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-main);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    overflow-x: hidden;
 }
 
-async function openPlayer(url) {
-    dom.playerView.classList.add('active');
-    dom.video.src = '';
-    dom.epGrid.innerHTML = '<div class="loader"></div>';
-    dom.currentTitle.innerText = 'Fetching episodes...';
-    dom.epDrawer.classList.remove('show'); // Reset drawer state
-
-    try {
-        const res = await fetch(`${API_BASE}?type=detail&url=${encodeURIComponent(url)}`);
-        const data = await res.json();
-        
-        dom.currentTitle.innerText = data.title;
-        renderEpisodes(data.episodes);
-        
-        if (data.episodes.length > 0) {
-            playEpisode(data.episodes[0].url, data.episodes[0].episode_id);
-        } else {
-            dom.epGrid.innerHTML = '<p>No episodes found.</p>';
-        }
-
-    } catch (e) {
-        console.error(e);
-        dom.currentTitle.innerText = 'Error loading drama';
-    }
+/* Header & Search */
+header {
+    padding: 15px;
+    position: sticky;
+    top: 0;
+    background: rgba(15, 15, 15, 0.95);
+    z-index: 100;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid #222;
 }
 
-function renderEpisodes(episodes) {
-    dom.epGrid.innerHTML = '';
-    episodes.forEach(ep => {
-        const btn = document.createElement('button');
-        btn.className = 'ep-btn';
-        btn.innerText = ep.episode_id;
-        btn.onclick = () => {
-            playEpisode(ep.url, ep.episode_id);
-            // Optional: Close drawer after clicking
-            // toggleDrawer(); 
-        };
-        dom.epGrid.appendChild(btn);
-    });
+header h1 { font-size: 1.3rem; font-weight: 900; letter-spacing: -0.5px; color: white; }
+
+.search-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
-function playEpisode(videoUrl, epNum) {
-    document.querySelectorAll('.ep-btn').forEach(b => {
-        b.classList.toggle('active', parseInt(b.innerText) === parseInt(epNum));
-    });
+#search-input {
+    background: #222;
+    border: 1px solid #333;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 20px;
+    outline: none;
+    width: 150px;
+    font-size: 0.9rem;
+    transition: width 0.3s ease;
+}
+#search-input:focus { border-color: var(--primary); width: 200px; }
 
-    const proxyUrl = `${API_BASE}?type=stream&url=${encodeURIComponent(videoUrl)}`;
-    dom.video.src = proxyUrl;
-    dom.video.play().catch(e => console.log("Autoplay blocked"));
+/* Grid */
+.grid-container {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    padding: 10px;
+    min-height: 80vh;
 }
 
-function closePlayer() {
-    dom.playerView.classList.remove('active');
-    dom.video.pause();
-    dom.video.src = '';
+.drama-card {
+    position: relative;
+    aspect-ratio: 2/3;
+    background: var(--card-bg);
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: pointer;
+}
+.drama-card img { width: 100%; height: 100%; object-fit: cover; }
+.drama-info {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: linear-gradient(to top, rgba(0,0,0,1), transparent);
+    padding: 15px 5px 5px 5px;
+}
+.drama-title { font-size: 0.75rem; font-weight: 600; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Player */
+#player-view {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: black; z-index: 200;
+    display: none; flex-direction: column;
+}
+#player-view.active { display: flex; }
+
+.video-container { flex: 1; display: flex; align-items: center; justify-content: center; background: #000; }
+video { width: 100%; max-height: 100vh; }
+
+.player-header { position: absolute; top: 10px; left: 10px; z-index: 10; }
+.back-btn {
+    background: rgba(0,0,0,0.6); border: none; color: white;
+    width: 40px; height: 40px; border-radius: 50%;
+    font-size: 1.2rem; cursor: pointer;
 }
 
-function toggleDrawer() {
-    dom.epDrawer.classList.toggle('show');
+/* Drawer */
+.episode-drawer {
+    background: #1a1a1a;
+    height: 50%;
+    overflow-y: auto;
+    border-top-left-radius: 16px;
+    border-top-right-radius: 16px;
+    padding: 15px;
+    display: none;
+    box-shadow: 0 -5px 20px rgba(0,0,0,0.5);
 }
+.episode-drawer.show { display: block; animation: slideUp 0.3s ease-out; }
+
+@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+.drawer-header { display: flex; justify-content: space-between; margin-bottom: 15px; font-weight: bold; border-bottom: 1px solid #333; padding-bottom: 10px; }
+
+.episode-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+
+.ep-btn {
+    background: #2a2a2a; border: none; color: #ccc;
+    padding: 12px 0; border-radius: 8px; font-weight: 600;
+    cursor: pointer;
+}
+.ep-btn.active { background: var(--primary); color: white; }
+
+/* Loader */
+.loader {
+    border: 3px solid #222; border-top: 3px solid var(--primary);
+    border-radius: 50%; width: 30px; height: 30px;
+    animation: spin 1s linear infinite; margin: 50px auto;
+}
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
