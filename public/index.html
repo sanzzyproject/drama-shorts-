@@ -3,59 +3,103 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DramaShorts</title>
+    <title>DramaShorts Pro</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <div id="home-view">
-        <header>
-            <h1 onclick="loadHome()" style="cursor: pointer;">DRAMA<span style="color:var(--primary)">BOX</span></h1>
-            
-            <div class="search-container">
-                <input type="text" id="search-input" placeholder="Search drama..." style="display: none;">
-                <div id="search-btn" style="font-size: 24px; cursor: pointer;">🔍</div>
-            </div>
-        </header>
-        
-        <div id="loading" class="loader"></div>
-        
-        <h3 id="page-title" style="padding: 0 15px; margin-bottom: 10px; display:none;">Popular Dramas</h3>
-        
-        <div id="drama-list" class="grid-container"></div>
+    <nav class="navbar">
+        <div class="logo">DRAMA<span class="highlight">BOX</span></div>
+        <div class="search-trigger" onclick="toggleSearch()">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        </div>
+    </nav>
 
-        <footer style="text-align: center; padding: 20px; color: #555; font-size: 0.8rem;">
-            Created by <span style="color: var(--primary); font-weight: bold;">SANN404 FORUM</span>
-        </footer>
+    <div id="search-overlay" class="search-overlay">
+        <div class="search-bar">
+            <input type="text" id="search-input" placeholder="Search drama title...">
+            <button onclick="doSearch()">GO</button>
+            <button class="close-search" onclick="toggleSearch()">✕</button>
+        </div>
     </div>
 
-    <div id="player-view">
-        <div class="player-header">
-            <button class="back-btn" onclick="closePlayer()">✕</button>
+    <div id="home-view" class="view active">
+        <div id="loading" class="loader"></div>
+        <div id="drama-list" class="grid-container"></div>
+    </div>
+
+    <div id="detail-view" class="view">
+        <div class="back-header">
+            <button onclick="goBackToHome()">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            </button>
+            <span>Detail Movie</span>
+        </div>
+
+        <div class="hero-section">
+            <div class="hero-backdrop" id="d-backdrop"></div>
+            <div class="hero-content">
+                <img id="d-poster" src="" alt="Poster" class="hero-poster">
+                <div class="hero-info">
+                    <h1 id="d-title">Title Loading...</h1>
+                    <div class="meta-tags">
+                        <span class="rating-badge">★ <span id="d-rating">0.0</span></span>
+                        <span class="eps-badge"><span id="d-eps-count">0</span> Episodes</span>
+                    </div>
+                    <div class="genre-list" id="d-genres"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="action-area">
+            <button id="play-now-btn" class="btn-primary-lg">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                Watch Now
+            </button>
+        </div>
+
+        <div class="info-tabs">
+            <div class="tab active">Episodes</div>
+            </div>
+
+        <div class="synopsis" id="d-desc"></div>
+
+        <div class="episode-list-container">
+            <div id="d-ep-grid" class="episode-grid"></div>
+        </div>
+    </div>
+
+    <div id="player-view" class="view">
+        <div class="player-overlay-header">
+            <button onclick="closePlayer()">
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+            </button>
+            <span id="p-title-sm" class="truncate">Playing...</span>
         </div>
         
-        <div class="video-container">
+        <div class="video-wrapper">
             <video id="main-video" controls playsinline autoplay></video>
         </div>
 
-        <div class="episode-bar" onclick="toggleDrawer()" style="padding: 15px; background: #111; cursor: pointer; z-index: 20;">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span id="current-title" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 70%;">Loading...</span>
-                <span style="color: var(--primary); font-size: 0.9rem;">Episodes ▲</span>
+        <div class="player-controls-bottom">
+            <div class="ep-drawer-trigger" onclick="toggleDrawer()">
+                <span>Episodes List</span>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 15l-6-6-6 6"/></svg>
             </div>
         </div>
 
         <div class="episode-drawer" id="ep-drawer">
             <div class="drawer-header">
-                <span style="color: var(--primary);">Full Episodes List</span>
-                <span onclick="toggleDrawer()">▼</span>
+                <span>All Episodes</span>
+                <span onclick="toggleDrawer()">✕</span>
             </div>
-            <div class="episode-grid" id="ep-grid"></div>
-            <div style="text-align: center; margin-top: 20px; font-size: 0.7rem; color: #444;">
-                SANN404 FORUM
-            </div>
+            <div class="episode-grid small" id="p-ep-grid"></div>
         </div>
     </div>
+
+    <footer class="credits">
+        Designed by <span style="color:var(--primary)">SANN404 FORUM</span>
+    </footer>
 
     <script src="app.js"></script>
 </body>
