@@ -10,12 +10,23 @@
 
     <div id="home-view">
         <header>
-            <h1>DRAMA<span style="color:white">BOX</span></h1>
-            <div style="font-size: 24px;">🔍</div>
+            <h1 onclick="loadHome()" style="cursor: pointer;">DRAMA<span style="color:var(--primary)">BOX</span></h1>
+            
+            <div class="search-container">
+                <input type="text" id="search-input" placeholder="Search drama..." style="display: none;">
+                <div id="search-btn" style="font-size: 24px; cursor: pointer;">🔍</div>
+            </div>
         </header>
         
         <div id="loading" class="loader"></div>
+        
+        <h3 id="page-title" style="padding: 0 15px; margin-bottom: 10px; display:none;">Popular Dramas</h3>
+        
         <div id="drama-list" class="grid-container"></div>
+
+        <footer style="text-align: center; padding: 20px; color: #555; font-size: 0.8rem;">
+            Created by <span style="color: var(--primary); font-weight: bold;">SANN404 FORUM</span>
+        </footer>
     </div>
 
     <div id="player-view">
@@ -27,20 +38,22 @@
             <video id="main-video" controls playsinline autoplay></video>
         </div>
 
-        <div class="episode-bar" onclick="toggleDrawer()" style="padding: 15px; background: #111; cursor: pointer;">
+        <div class="episode-bar" onclick="toggleDrawer()" style="padding: 15px; background: #111; cursor: pointer; z-index: 20;">
             <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span id="current-title">Loading title...</span>
-                <span style="color: var(--primary);">Episodes ▲</span>
+                <span id="current-title" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 70%;">Loading...</span>
+                <span style="color: var(--primary); font-size: 0.9rem;">Episodes ▲</span>
             </div>
         </div>
 
         <div class="episode-drawer" id="ep-drawer">
             <div class="drawer-header">
-                <span>Select Episode</span>
+                <span style="color: var(--primary);">Full Episodes List</span>
                 <span onclick="toggleDrawer()">▼</span>
             </div>
-            <div class="episode-grid" id="ep-grid">
-                </div>
+            <div class="episode-grid" id="ep-grid"></div>
+            <div style="text-align: center; margin-top: 20px; font-size: 0.7rem; color: #444;">
+                SANN404 FORUM
+            </div>
         </div>
     </div>
 
