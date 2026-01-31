@@ -1,168 +1,152 @@
-:root {
-    --bg-dark: #121212;
-    --bg-card: #1e1e1e;
-    --primary: #FFCC00; /* Kuning/Emas ala DramaBox */
-    --accent-red: #E50914;
-    --text-white: #ffffff;
-    --text-gray: #a8a8a8;
+const API_BASE = '/api/index';
+
+const dom = {
+    homeView: document.getElementById('home-view'),
+    playerView: document.getElementById('player-view'),
+    dramaList: document.getElementById('drama-list'),
+    loading: document.getElementById('loading'),
+    video: document.getElementById('main-video'),
+    epGrid: document.getElementById('ep-grid'),
+    epDrawer: document.getElementById('ep-drawer'),
+    currentTitle: document.getElementById('current-title'),
+    searchInput: document.getElementById('search-input'),
+    searchBtn: document.getElementById('search-btn'),
+    pageTitle: document.getElementById('page-title')
+};
+
+window.addEventListener('DOMContentLoaded', loadHome);
+
+// --- SEARCH LOGIC ---
+dom.searchBtn.onclick = () => {
+    if (dom.searchInput.style.display === 'none') {
+        dom.searchInput.style.display = 'block';
+        dom.searchInput.focus();
+    } else {
+        const query = dom.searchInput.value.trim();
+        if (query) doSearch(query);
+    }
+};
+
+dom.searchInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') doSearch(dom.searchInput.value.trim());
+});
+
+async function doSearch(query) {
+    if(!query) return;
+    dom.loading.style.display = 'block';
+    dom.dramaList.innerHTML = '';
+    dom.pageTitle.style.display = 'block';
+    dom.pageTitle.innerText = `Search: "${query}"`;
+    
+    try {
+        const res = await fetch(`${API_BASE}?type=search&query=${encodeURIComponent(query)}`);
+        const data = await res.json();
+        dom.loading.style.display = 'none';
+        
+        if(data.length === 0) {
+            dom.dramaList.innerHTML = '<p style="text-align:center; width:100%; color:#666;">No results found.</p>';
+        } else {
+            renderList(data);
+        }
+    } catch (e) {
+        alert('Search failed');
+        loadHome();
+    }
+}
+// --------------------
+
+async function loadHome() {
+    dom.searchInput.style.display = 'none';
+    dom.searchInput.value = '';
+    dom.pageTitle.style.display = 'block';
+    dom.pageTitle.innerText = 'Recommended For You';
+    dom.loading.style.display = 'block';
+    dom.dramaList.innerHTML = '';
+
+    try {
+        const res = await fetch(`${API_BASE}?type=home`);
+        const data = await res.json();
+        dom.loading.style.display = 'none';
+        renderList(data);
+    } catch (e) {
+        console.error(e);
+        dom.dramaList.innerHTML = '<p style="text-align:center;">Failed to load.</p>';
+    }
 }
 
-body {
-    background-color: var(--bg-dark);
-    color: var(--text-white);
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
-    margin: 0; padding: 0;
-    overflow-x: hidden;
+function renderList(data) {
+    dom.dramaList.innerHTML = '';
+    data.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'drama-card';
+        card.innerHTML = `
+            <img src="${item.image}" loading="lazy" alt="${item.title}">
+            <div class="drama-info">
+                <div class="drama-title">${item.title}</div>
+            </div>
+        `;
+        card.onclick = () => openPlayer(item.url);
+        dom.dramaList.appendChild(card);
+    });
 }
 
-/* UTILS */
-.view { display: none; padding-bottom: 60px; animation: fadeIn 0.3s; }
-.view.active { display: block; }
-@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+async function openPlayer(url) {
+    dom.playerView.classList.add('active');
+    dom.video.src = '';
+    dom.epGrid.innerHTML = '<div class="loader"></div>';
+    dom.currentTitle.innerText = 'Fetching episodes...';
+    dom.epDrawer.classList.remove('show'); // Reset drawer state
 
-/* NAVBAR */
-.navbar {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 15px 20px;
-    background: rgba(18, 18, 18, 0.9);
-    backdrop-filter: blur(10px);
-    position: sticky; top: 0; z-index: 50;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
-}
-.logo { font-size: 1.4rem; font-weight: 900; letter-spacing: -1px; }
-.highlight { color: var(--accent-red); }
-.search-trigger { cursor: pointer; color: white; }
+    try {
+        const res = await fetch(`${API_BASE}?type=detail&url=${encodeURIComponent(url)}`);
+        const data = await res.json();
+        
+        dom.currentTitle.innerText = data.title;
+        renderEpisodes(data.episodes);
+        
+        if (data.episodes.length > 0) {
+            playEpisode(data.episodes[0].url, data.episodes[0].episode_id);
+        } else {
+            dom.epGrid.innerHTML = '<p>No episodes found.</p>';
+        }
 
-/* SEARCH OVERLAY */
-.search-overlay {
-    position: fixed; top: 0; left: 0; width: 100%; height: 60px;
-    background: var(--bg-dark); z-index: 60;
-    display: none; align-items: center; justify-content: center;
-    border-bottom: 1px solid #333;
-}
-.search-bar { display: flex; gap: 10px; width: 90%; }
-#search-input {
-    flex: 1; background: #222; border: none; padding: 10px;
-    color: white; border-radius: 6px; outline: none;
-}
-.search-bar button {
-    background: var(--primary); border: none; padding: 0 15px;
-    border-radius: 6px; font-weight: bold; color: black;
-}
-.close-search { background: transparent !important; color: white !important; font-size: 1.2rem; }
-
-/* GRID HOME */
-.grid-container {
-    display: grid; grid-template-columns: repeat(3, 1fr);
-    gap: 10px; padding: 15px;
-}
-.drama-card {
-    position: relative; border-radius: 8px; overflow: hidden;
-    aspect-ratio: 2/3; box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-}
-.drama-card img { width: 100%; height: 100%; object-fit: cover; }
-.drama-card .info {
-    position: absolute; bottom: 0; left: 0; width: 100%;
-    background: linear-gradient(to top, black, transparent);
-    padding: 20px 5px 5px 5px;
-}
-.drama-card h3 { font-size: 0.7rem; margin: 0; text-align: center; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-
-/* DETAIL PAGE (PROFESSIONAL LOOK) */
-.back-header {
-    padding: 15px; display: flex; align-items: center; gap: 15px;
-    background: transparent; position: absolute; top: 0; left: 0; width: 100%; z-index: 10;
-}
-.back-header button { background: rgba(0,0,0,0.5); border: none; color: white; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; }
-
-.hero-section { position: relative; padding-top: 60px; margin-bottom: 20px; }
-.hero-backdrop {
-    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-    background-size: cover; background-position: center;
-    filter: blur(20px) brightness(0.4); z-index: -1;
-    mask-image: linear-gradient(to bottom, black, transparent);
-}
-.hero-content {
-    display: flex; gap: 15px; padding: 0 20px; align-items: flex-end;
-}
-.hero-poster {
-    width: 110px; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.5);
-    aspect-ratio: 2/3; object-fit: cover;
-}
-.hero-info h1 {
-    font-size: 1.2rem; margin: 0 0 10px 0; line-height: 1.2;
-}
-.meta-tags { display: flex; gap: 10px; font-size: 0.8rem; margin-bottom: 8px; }
-.rating-badge { color: #FFD700; font-weight: bold; }
-.eps-badge { color: var(--text-gray); }
-.genre-list span {
-    font-size: 0.7rem; background: rgba(255,255,255,0.1);
-    padding: 2px 8px; border-radius: 4px; margin-right: 5px;
+    } catch (e) {
+        console.error(e);
+        dom.currentTitle.innerText = 'Error loading drama';
+    }
 }
 
-.action-area { padding: 0 20px; margin-top: 20px; }
-.btn-primary-lg {
-    width: 100%; background: var(--primary); color: black;
-    border: none; padding: 12px; border-radius: 8px;
-    font-size: 1rem; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px;
-    cursor: pointer; box-shadow: 0 0 15px rgba(255, 204, 0, 0.3);
+function renderEpisodes(episodes) {
+    dom.epGrid.innerHTML = '';
+    episodes.forEach(ep => {
+        const btn = document.createElement('button');
+        btn.className = 'ep-btn';
+        btn.innerText = ep.episode_id;
+        btn.onclick = () => {
+            playEpisode(ep.url, ep.episode_id);
+            // Optional: Close drawer after clicking
+            // toggleDrawer(); 
+        };
+        dom.epGrid.appendChild(btn);
+    });
 }
 
-.synopsis {
-    padding: 0 20px; font-size: 0.85rem; color: #ccc;
-    line-height: 1.5; margin: 15px 0;
-    max-height: 80px; overflow: hidden; position: relative;
+function playEpisode(videoUrl, epNum) {
+    document.querySelectorAll('.ep-btn').forEach(b => {
+        b.classList.toggle('active', parseInt(b.innerText) === parseInt(epNum));
+    });
+
+    const proxyUrl = `${API_BASE}?type=stream&url=${encodeURIComponent(videoUrl)}`;
+    dom.video.src = proxyUrl;
+    dom.video.play().catch(e => console.log("Autoplay blocked"));
 }
 
-.info-tabs {
-    display: flex; margin: 20px 20px 10px 20px;
-    border-bottom: 1px solid #333;
+function closePlayer() {
+    dom.playerView.classList.remove('active');
+    dom.video.pause();
+    dom.video.src = '';
 }
-.tab {
-    padding-bottom: 10px; margin-right: 20px;
-    font-weight: 600; color: var(--text-gray); cursor: pointer;
-}
-.tab.active { color: white; border-bottom: 2px solid var(--primary); }
 
-.episode-grid {
-    display: grid; grid-template-columns: repeat(5, 1fr);
-    gap: 8px; padding: 0 20px;
+function toggleDrawer() {
+    dom.epDrawer.classList.toggle('show');
 }
-.ep-box {
-    background: #2a2a2a; color: white;
-    padding: 12px 0; text-align: center; border-radius: 6px;
-    font-size: 0.9rem; font-weight: 500; cursor: pointer;
-    transition: background 0.2s;
-}
-.ep-box:active { transform: scale(0.95); }
-.ep-box.active { background: #333; color: var(--primary); border: 1px solid var(--primary); }
-
-/* PLAYER */
-#player-view { background: black; height: 100vh; display: none; flex-direction: column; }
-#player-view.active { display: flex; z-index: 100; position: fixed; top: 0; left: 0; }
-.player-overlay-header {
-    position: absolute; top: 10px; left: 10px; z-index: 10;
-    display: flex; align-items: center; width: 100%;
-}
-.video-wrapper { flex: 1; display: flex; align-items: center; justify-content: center; background: black; }
-video { width: 100%; max-height: 100vh; }
-.player-controls-bottom {
-    padding: 20px; background: #111;
-}
-.ep-drawer-trigger {
-    display: flex; justify-content: space-between; align-items: center;
-    background: #222; padding: 12px; border-radius: 8px; cursor: pointer;
-}
-.episode-drawer {
-    position: fixed; bottom: 0; left: 0; width: 100%; height: 50vh;
-    background: #1a1a1a; border-radius: 20px 20px 0 0;
-    transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    z-index: 110; padding: 20px; display: flex; flex-direction: column;
-}
-.episode-drawer.show { transform: translateY(0); }
-.drawer-header { display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 1.1rem; font-weight: bold; }
-.episode-grid.small { overflow-y: auto; padding: 0; }
-
-.credits { text-align: center; padding: 30px; font-size: 0.7rem; color: #444; margin-top: auto; }
-.loader { margin: 50px auto; width: 30px; height: 30px; border: 3px solid #333; border-top-color: var(--primary); border-radius: 50%; animation: spin 1s infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
