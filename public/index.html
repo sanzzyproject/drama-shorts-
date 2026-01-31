@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>DramaShorts</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div id="home-view">
+        <header>
+            <h1>DRAMA<span style="color:white">BOX</span></h1>
+            <div style="font-size: 24px;">🔍</div>
+        </header>
+        
+        <div id="loading" class="loader"></div>
+        <div id="drama-list" class="grid-container"></div>
+    </div>
+
+    <div id="player-view">
+        <div class="player-header">
+            <button class="back-btn" onclick="closePlayer()">✕</button>
+        </div>
+        
+        <div class="video-container">
+            <video id="main-video" controls playsinline autoplay></video>
+        </div>
+
+        <div class="episode-bar" onclick="toggleDrawer()" style="padding: 15px; background: #111; cursor: pointer;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span id="current-title">Loading title...</span>
+                <span style="color: var(--primary);">Episodes ▲</span>
+            </div>
+        </div>
+
+        <div class="episode-drawer" id="ep-drawer">
+            <div class="drawer-header">
+                <span>Select Episode</span>
+                <span onclick="toggleDrawer()">▼</span>
+            </div>
+            <div class="episode-grid" id="ep-grid">
+                </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
